@@ -3,12 +3,10 @@ import { email, z } from "zod";
 
 import { healthRouter } from "./routes/health/route";
 import { authRouter } from "./routes/auth/route";
-import { chaicodeRouter } from "./routes/chaicode/route";
 
 export const serverRouter = router({
   health: healthRouter,
   auth: authRouter,
-  chaicode: chaicodeRouter,
 });
 
 export { createContext } from "./context";
