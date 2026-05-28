@@ -42,7 +42,7 @@ export function clearCookiedFactory(res: Response) {
 export function setAuthenticationCookie(ctx: TRPCCONTEXT, accessToken: string) {
   ctx.createCookie("authentication-token", accessToken);
 }
-export function getAuthenticationCookie(ctx: TRPCCONTEXT, accessToken: string) {
+export function getAuthenticationCookie(ctx: TRPCCONTEXT) {
   return ctx.getCookie("authentication-token");
 }
 export function clearAuthenticationCookie(ctx: TRPCCONTEXT, accessToken: string) {

@@ -2,6 +2,7 @@
 
 import { GalleryVerticalEnd } from "lucide-react";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { SignupForm } from "~/components/signup-form";
 import { useSignUp } from "~/hooks/api/auth";
@@ -16,6 +17,7 @@ type FormValues = {
 export default function SignupPage() {
   const { createUserWithEmailAndPasswordAsync } = useSignUp();
   const { handleSubmit, register } = useForm<FormValues>();
+  const router = useRouter();
 
   const onSubmit = async (values: FormValues) => {
     const { id } = await createUserWithEmailAndPasswordAsync({
@@ -25,6 +27,7 @@ export default function SignupPage() {
     });
 
     console.log(`User is created with ID : ${id}`);
+    router.replace("/dashboard");
   };
 
   return (

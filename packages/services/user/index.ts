@@ -1,5 +1,5 @@
 import { randomBytes, createHmac } from "node:crypto";
-import { db, eq } from "@repo/database";
+import { db, sql, eq } from "@repo/database";
 import { usersTable } from "@repo/database/models/user";
 import { env } from "../env";
 // import { googleOAuth2Client } from "../clients/google-oauth";
@@ -7,10 +7,12 @@ import {
   GetAuthenticationMethodOutputSchema,
   createUserWithEmailAndPasswordInput,
   generateUserTokenPayload,
+  signinUserWithEmailAndPasswordInput,
 } from "./model";
 import {
   type CreateUserWithEmailAndPasswordInputType,
   GenerateUserTokenPayloadType,
+  SigninUserWithEmailAndPasswordInputType,
 } from "./model";
 
 import * as JWT from "jsonwebtoken";
@@ -22,30 +24,65 @@ class UserService {
     return { token };
   }
 
+  private async generateHash(salt: string, password: string) {
+    return createHmac("sha256", salt).update(password).digest("hex");
+  }
   private async getUserByEmail(email: string) {
-    const result = await db.select().from(usersTable).where(eq(usersTable.email, email));
+    const normalizedEmail = email.trim().toLowerCase();
+    const result = await db
+      .select()
+      .from(usersTable)
+      .where(sql`lower(${usersTable.email}) = ${normalizedEmail}`);
     if (!result || result.length === 0) return null;
     return result[0];
   }
+
+  private async verifyUserToken(token: string): Promise<GenerateUserTokenPayloadType> {
+    try {
+      const verificationResult = JWT.verify(token, env.JWT_SECRET) as GenerateUserTokenPayloadType;
+      return verificationResult;
+    } catch (error) {
+      throw new Error("Invalid token");
+    }
+  }
+
+  private async getUserInfoById(id: string) {
+    const [user] = await db
+      .select({
+        id: usersTable.id,
+        email: usersTable.email,
+        fullName: usersTable.fullName,
+        profileImageUrl: usersTable.profileImageUrl,
+      })
+      .from(usersTable)
+      .where(eq(usersTable.id, id));
+
+    if (!user) {
+      throw new Error(`User with ${id} does not exist`);
+    }
+    return user;
+  }
+
   public async createUserWithEmailAndPassword(payload: CreateUserWithEmailAndPasswordInputType) {
     //validation
     const { full_name, email, password } =
       await createUserWithEmailAndPasswordInput.parseAsync(payload);
+    const normalizedEmail = email.trim().toLowerCase();
 
     //check for existing user
-    const existingUser = await this.getUserByEmail(email);
+    const existingUser = await this.getUserByEmail(normalizedEmail);
     if (existingUser) {
       throw new Error("User with email already exists");
     }
 
     // hashthe password
     const salt = randomBytes(16).toString("hex");
-    const hash = createHmac("sha256", salt).update(password).digest("hex");
+    const hash = await this.generateHash(salt, password);
 
     // create the user in db
     const userInnerResult = await db
       .insert(usersTable)
-      .values({ fullName: full_name, email, password: hash, salt })
+      .values({ fullName: full_name, email: normalizedEmail, password: hash, salt })
       .returning({
         id: usersTable.id,
       });
@@ -61,25 +98,34 @@ class UserService {
     };
   }
 
-  // public async getAuthenticationMethods(): Promise<
-  //   ReadonlyArray<GetAuthenticationMethodOutputSchema>
-  // > {
-  //   const supportedAuthenticationProviders: GetAuthenticationMethodOutputSchema[] = [];
+  public async signinUserWithEmailAndPassword(payload: SigninUserWithEmailAndPasswordInputType) {
+    const { email, password } = await signinUserWithEmailAndPasswordInput.parseAsync(payload);
+    const normalizedEmail = email.trim().toLowerCase();
+    //check if email is there or not
+    const existingUser = await this.getUserByEmail(normalizedEmail);
+    if (!existingUser) {
+      throw new Error(`User with email ${email} does not exist`);
+    }
+    if (!existingUser.password || !existingUser.salt) {
+      throw new Error("Invalid login method");
+    }
 
-  //   const isGoogleConfigured = !!(env.GOOGLE_OAUTH_CLIENT_ID && env.GOOGLE_OAUTH_CLIENT_SECRET);
+    const hash = await this.generateHash(existingUser.salt, password);
+    if (existingUser.password !== hash) {
+      throw new Error("Invalid email or password");
+    }
 
-  //   if (isGoogleConfigured) {
-  //     const url = googleOAuth2Client.generateAuthUrl();
-  //     supportedAuthenticationProviders.push({
-  //       provider: "GOOGLE_OAUTH",
-  //       displayName: "Google",
-  //       displayText: "Signin with Google",
-  //       authUrl: url,
-  //     });
-  //   }
+    const { token } = await this.generateUserToken({ id: existingUser.id });
 
-  //   return supportedAuthenticationProviders;
-  // }
+    return { id: existingUser.id, token };
+  }
+
+  public async verifyAndDecodeUserToken(token: string) {
+    const { id } = await this.verifyUserToken(token);
+    const userInfo = await this.getUserInfoById(id);
+
+    return { ...userInfo };
+  }
 }
 
 export default UserService;
