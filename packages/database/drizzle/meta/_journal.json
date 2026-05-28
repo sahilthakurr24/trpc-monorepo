@@ -15,6 +15,20 @@
       "when": 1779287772102,
       "tag": "0001_blue_nick_fury",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1779961100764,
+      "tag": "0002_wide_cerise",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1779962117268,
+      "tag": "0003_known_spyke",
+      "breakpoints": true
     }
   ]
 }
