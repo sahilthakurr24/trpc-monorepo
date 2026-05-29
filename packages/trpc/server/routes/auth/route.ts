@@ -2,7 +2,7 @@ import { z, zodUndefinedModel } from "../../schema";
 import { TRPCError } from "@trpc/server";
 import { userService } from "../../services";
 import { getAuthenticationMethodOutputSchema } from "@repo/services/user/model";
-import { publicProcedure, router } from "../../trpc";
+import { authenticationProcedure, publicProcedure, router } from "../../trpc";
 import { generatePath } from "../../utils/path-generator";
 import {
   createUserWithEmailAndPasswordInput,
@@ -86,7 +86,7 @@ export const authRouter = router({
         throw error;
       }
     }),
-  getLoggedInUserInfo: publicProcedure
+  getLoggedInUserInfo: authenticationProcedure
     .meta({
       openapi: {
         method: "POST",
@@ -100,8 +100,9 @@ export const authRouter = router({
       const token = getAuthenticationCookie(ctx);
       if (!token) throw new Error("User is not logged in");
 
-      const { id, email, fullName, profileImageUrl } =
-        await userService.verifyAndDecodeUserToken(token);
+      const { id, email, fullName, profileImageUrl } = await userService.getUserInfoById(
+        ctx.user.id,
+      );
       return {
         id,
         email,
