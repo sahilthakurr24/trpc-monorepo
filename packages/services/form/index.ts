@@ -24,7 +24,7 @@ class FormService {
         title: formsTable.title,
         description: formsTable.description,
         createdAt: formsTable.createdAt,
-        updatedAt: formsTable.createdAt,
+        updatedAt: formsTable.updatedAt,
       })
       .from(formsTable)
       .where(eq(formsTable.createdBy, id));
