@@ -3,6 +3,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
   ArrowLeft,
+  ClipboardList,
   FileText,
   GripVertical,
   Loader2,
@@ -182,12 +183,20 @@ export default function FormBuilderPage() {
             <h1 className="text-2xl font-semibold tracking-normal">Form builder</h1>
             <p className="text-sm text-muted-foreground">Create and edit fields for this form.</p>
           </div>
-          <Button asChild variant="outline">
-            <Link href="/dashboard/forms">
-              <ArrowLeft className="size-4" />
-              Back to forms
-            </Link>
-          </Button>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button asChild variant="outline">
+              <Link href={`/dashboard/forms/${formId}/submission`}>
+                <ClipboardList className="size-4" />
+                Submissions
+              </Link>
+            </Button>
+            <Button asChild variant="outline">
+              <Link href="/dashboard/forms">
+                <ArrowLeft className="size-4" />
+                Back to forms
+              </Link>
+            </Button>
+          </div>
         </div>
 
         <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_420px]">
