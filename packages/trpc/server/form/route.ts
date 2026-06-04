@@ -10,6 +10,8 @@ import {
   deleteFormFieldOutput,
   formFieldOutput,
   getFormFieldInput,
+  getFormSubmissionsByFormIdInput,
+  getFormSubmissionsByFormIdOutput,
   getPublicFormByIdInput,
   getPublicFormByIdOutput,
   listFormFieldsByFormIdInput,
@@ -87,6 +89,22 @@ export const formRouter = router({
       const { forms } = await formService.listFormByUserId({ id: ctx.user.id });
       return forms;
     }),
+
+  getFormSubmissionsByFormId: authenticationProcedure
+    .meta({
+      openapi: {
+        method: "GET",
+        path: getPath("/getFormSubmissionsByFormId"),
+        tags: TAGS,
+      },
+    })
+    .input(getFormSubmissionsByFormIdInput)
+    .output(getFormSubmissionsByFormIdOutput)
+    .query(async ({ input }) => {
+      const { submissions } = await formSubmissionService.getFormSubmissionsByFormId(input);
+      return submissions;
+    }),
+
   createField: authenticationProcedure
     .meta({
       openapi: {
