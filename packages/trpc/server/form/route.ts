@@ -1,4 +1,4 @@
-import { formService, formFieldService } from "../services";
+import { formFieldService, formService, formSubmissionService } from "../services";
 import { authenticationProcedure, publicProcedure, router } from "../trpc";
 import { generatePath } from "../utils/path-generator";
 import {
@@ -15,6 +15,8 @@ import {
   listFormFieldsByFormIdInput,
   listFormFieldsByFormIdOutput,
   listFormByUserIdOutput,
+  submitPublicFormInput,
+  submitPublicFormOutput,
   updateFormFieldInput,
   updateFormFieldOutput,
 } from "./model";
@@ -36,6 +38,21 @@ export const formRouter = router({
     .query(async ({ input }) => {
       const { form } = await formService.getPublicFormById(input);
       return form;
+    }),
+
+  submitPublicForm: publicProcedure
+    .meta({
+      openapi: {
+        method: "POST",
+        path: getPath("/submitPublicForm"),
+        tags: TAGS,
+      },
+    })
+    .input(submitPublicFormInput)
+    .output(submitPublicFormOutput)
+    .mutation(async ({ input }) => {
+      const { id } = await formSubmissionService.submitPublicForm(input);
+      return { id };
     }),
 
   createForm: authenticationProcedure

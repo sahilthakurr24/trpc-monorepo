@@ -47,3 +47,45 @@ export function useUserForms() {
     status,
   };
 }
+
+export function usePublicForm(formId: string) {
+  const {
+    data: form,
+    error,
+    isFetched,
+    isFetching,
+    isLoading,
+    status,
+  } = trpc.form.getPublicFormById.useQuery({ formId });
+
+  return {
+    form,
+    error,
+    isFetched,
+    isFetching,
+    isLoading,
+    status,
+  };
+}
+
+export function useSubmitPublicForm() {
+  const {
+    mutateAsync: submitPublicFormAsync,
+    error,
+    isError,
+    isIdle,
+    isPending,
+    isSuccess,
+    status,
+  } = trpc.form.submitPublicForm.useMutation();
+
+  return {
+    submitPublicFormAsync,
+    error,
+    isError,
+    isIdle,
+    isPending,
+    isSuccess,
+    status,
+  };
+}

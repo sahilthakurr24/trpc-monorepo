@@ -94,3 +94,19 @@ export const getPublicFormByIdOutput = z.object({
   updatedAt: z.date().nullable().describe("Last updated timestamp"),
   fields: z.array(formFieldOutput).describe("Fields in display order"),
 });
+
+export const submitPublicFormInput = z.object({
+  formId: z.uuid().describe("ID of the form"),
+  values: z
+    .array(
+      z.object({
+        formFieldId: z.uuid().describe("ID of the form field"),
+        value: z.string().describe("Submitted value"),
+      })
+    )
+    .describe("Submitted form values"),
+});
+
+export const submitPublicFormOutput = z.object({
+  id: z.string().describe("Id of the form submission"),
+});
