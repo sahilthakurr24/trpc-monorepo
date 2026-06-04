@@ -89,3 +89,23 @@ export function useSubmitPublicForm() {
     status,
   };
 }
+
+export function useFormSubmissions(formId: string) {
+  const {
+    data: submissions = [],
+    error,
+    isFetched,
+    isFetching,
+    isLoading,
+    status,
+  } = trpc.form.getFormSubmissionsByFormId.useQuery({ formId });
+
+  return {
+    submissions,
+    error,
+    isFetched,
+    isFetching,
+    isLoading,
+    status,
+  };
+}
