@@ -81,3 +81,16 @@ export const listFormFieldsByFormIdInput = z.object({
 });
 
 export const listFormFieldsByFormIdOutput = z.array(formFieldOutput);
+
+export const getPublicFormByIdInput = z.object({
+  formId: z.uuid().describe("ID of the form"),
+});
+
+export const getPublicFormByIdOutput = z.object({
+  id: z.string().describe("Id of the form"),
+  title: z.string().describe("Title of the form"),
+  description: z.string().nullable().describe("Description of the form"),
+  createdAt: z.date().nullable().describe("Creation timestamp"),
+  updatedAt: z.date().nullable().describe("Last updated timestamp"),
+  fields: z.array(formFieldOutput).describe("Fields in display order"),
+});
