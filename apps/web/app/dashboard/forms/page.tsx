@@ -73,7 +73,7 @@ export default function FormsPage() {
   const router = useRouter();
   const [isCreatingForm, setIsCreatingForm] = useState(false);
   const { createFormAsync, error, isPending } = useCreateForm();
-  const { forms, isLoading: isFormsLoading } = useUserForms();
+  const { forms, error: formsError, isLoading: isFormsLoading } = useUserForms();
   const form = useForm<CreateFormValues>({
     resolver: zodResolver(createFormSchema),
     defaultValues,
@@ -139,6 +139,11 @@ export default function FormsPage() {
               </CardDescription>
             </CardHeader>
             <CardContent className="p-0">
+              {formsError?.message ? (
+                <div className="border-b px-6 py-4 text-sm font-medium text-destructive">
+                  {formsError.message}
+                </div>
+              ) : null}
               <Table>
                 <TableHeader>
                   <TableRow>
