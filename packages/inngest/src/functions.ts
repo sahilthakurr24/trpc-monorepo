@@ -236,7 +236,7 @@ export const generateFormWithAi = inngest.createFunction(
       typeof event.data.userName === "string" && event.data.userName.trim().length > 0
         ? event.data.userName.trim()
         : null;
-
+    //step1
     const aiResponse = await step.ai.infer("generate-form", {
       model: gpt4omini,
       body: {
@@ -266,12 +266,13 @@ export const generateFormWithAi = inngest.createFunction(
         ],
       },
     });
-
+    //step2
     const generatedForm = await step.run("validate-generated-form", () => {
       const outputText = getGeneratedFormText(aiResponse);
       return generatedFormSchema.parse(JSON.parse(outputText));
     });
 
+    //step3
     const createdForm = await step.run("create-generated-form", async () => {
       return db.transaction(async (tx) => {
         const createdBy = String(event.data.createdBy ?? "");
