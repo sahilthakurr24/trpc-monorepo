@@ -1,7 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ArrowRight, FileText, Loader2, Plus, Sparkles } from "lucide-react";
+import { ArrowRight, Bot, FileText, Loader2, Plus, Send, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -37,7 +37,7 @@ import {
   TableRow,
 } from "~/components/ui/table";
 import { Textarea } from "~/components/ui/textarea";
-import { useCreateForm, useUserForms } from "~/hooks/api/form";
+import { useCreateForm, useGenerateFormWithAi, useUserForms } from "~/hooks/api/form";
 
 const createFormSchema = z.object({
   title: z
@@ -72,7 +72,11 @@ function formatDate(value: Date | string | null) {
 export default function FormsPage() {
   const router = useRouter();
   const [isCreatingForm, setIsCreatingForm] = useState(false);
+  const [isAskingAi, setIsAskingAi] = useState(false);
+  const [aiPrompt, setAiPrompt] = useState("");
+  const [submittedAiPrompt, setSubmittedAiPrompt] = useState("");
   const { createFormAsync, error, isPending } = useCreateForm();
+  const { generateFormWithAiAsync, isPending: isGeneratingWithAi } = useGenerateFormWithAi();
   const { forms, error: formsError, isLoading: isFormsLoading } = useUserForms();
   const form = useForm<CreateFormValues>({
     resolver: zodResolver(createFormSchema),
@@ -81,6 +85,11 @@ export default function FormsPage() {
   });
 
   const descriptionValue = form.watch("description");
+
+  const resetAiBuilder = () => {
+    setAiPrompt("");
+    setSubmittedAiPrompt("");
+  };
 
   const onSubmit = async (values: CreateFormValues) => {
     try {
@@ -95,6 +104,29 @@ export default function FormsPage() {
     }
   };
 
+  const onAiPromptSubmit = async () => {
+    const prompt = aiPrompt.trim();
+    if (!prompt) {
+      toast.error("Describe the form you want first");
+      return;
+    }
+
+    setSubmittedAiPrompt(prompt);
+
+    try {
+      await generateFormWithAiAsync({
+        prompt,
+      });
+
+      toast.success("AI form generation started");
+      setAiPrompt("");
+      setIsAskingAi(false);
+      router.refresh();
+    } catch {
+      toast.error("Unable to start AI form generation");
+    }
+  };
+
   return (
     <div className="flex flex-1 flex-col">
       <div className="@container/main flex flex-1 flex-col gap-6 p-4 md:p-6">
@@ -104,10 +136,33 @@ export default function FormsPage() {
             <p className="text-sm text-muted-foreground">
               {isCreatingForm
                 ? "Start a new form with a clear title and description."
+                : isAskingAi
+                  ? "Describe the form you want and refine it with AI."
                 : "Create, manage, and edit your workspace forms."}
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
+            <Button
+              type="button"
+              variant={isAskingAi ? "default" : "outline"}
+              onClick={() => {
+                if (!isAskingAi) {
+                  form.reset(defaultValues);
+                  resetAiBuilder();
+                }
+                setIsCreatingForm(false);
+                setIsAskingAi((current) => !current);
+              }}
+            >
+              {isAskingAi ? (
+                "View forms"
+              ) : (
+                <>
+                  <Bot className="size-4" />
+                  Ask AI to create
+                </>
+              )}
+            </Button>
             <Button
               type="button"
               variant={isCreatingForm ? "outline" : "default"}
@@ -115,6 +170,7 @@ export default function FormsPage() {
                 if (isCreatingForm) {
                   form.reset(defaultValues);
                 }
+                setIsAskingAi(false);
                 setIsCreatingForm((current) => !current);
               }}
             >
@@ -130,7 +186,134 @@ export default function FormsPage() {
           </div>
         </div>
 
-        {!isCreatingForm ? (
+        {isAskingAi ? (
+          <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
+            <Card className="rounded-lg">
+              <CardHeader className="border-b">
+                <div className="flex size-10 items-center justify-center rounded-lg border bg-muted">
+                  <Bot className="size-5 text-muted-foreground" />
+                </div>
+                <CardTitle>Ask AI to create a form</CardTitle>
+                <CardDescription>
+                  Send one request and AI will generate the title, description, and fields.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-5">
+                <div className="space-y-4 rounded-lg border bg-muted/20 p-4">
+                  <div className="space-y-3">
+                    <div className="flex gap-3">
+                      <div className="flex size-8 shrink-0 items-center justify-center rounded-md border bg-background">
+                        <Sparkles className="size-4 text-muted-foreground" />
+                      </div>
+                      <div className="max-w-[82%] rounded-lg border bg-background px-3 py-2 text-sm">
+                        Tell me what form you want. I will create the title, description, and
+                        fields automatically.
+                      </div>
+                    </div>
+
+                    {submittedAiPrompt ? (
+                      <>
+                        <div className="flex justify-end">
+                          <div className="max-w-[82%] rounded-lg bg-primary px-3 py-2 text-sm text-primary-foreground">
+                            {submittedAiPrompt}
+                          </div>
+                        </div>
+                        <div className="flex gap-3">
+                          <div className="flex size-8 shrink-0 items-center justify-center rounded-md border bg-background">
+                            {isGeneratingWithAi ? (
+                              <Loader2 className="size-4 animate-spin text-muted-foreground" />
+                            ) : (
+                              <Bot className="size-4 text-muted-foreground" />
+                            )}
+                          </div>
+                          <div className="max-w-[82%] rounded-lg border bg-background px-3 py-2 text-sm">
+                            {isGeneratingWithAi
+                              ? "Creating your form..."
+                              : "Your request was sent. The generated form will appear in your forms list after Inngest finishes."}
+                          </div>
+                        </div>
+                      </>
+                    ) : null}
+                  </div>
+
+                  <div className="space-y-3 border-t pt-4">
+                    <Textarea
+                      value={aiPrompt}
+                      disabled={isGeneratingWithAi}
+                      onChange={(event) => setAiPrompt(event.target.value)}
+                      className="min-h-28 resize-none bg-background"
+                      placeholder="I want to create a feedback form for customers after they purchase a product."
+                    />
+                    <div className="flex justify-end">
+                      <Button type="button" disabled={isGeneratingWithAi} onClick={onAiPromptSubmit}>
+                        {isGeneratingWithAi ? (
+                          <>
+                            <Loader2 className="size-4 animate-spin" />
+                            Sending
+                          </>
+                        ) : (
+                          <>
+                            <Send className="size-4" />
+                            Send to AI
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex flex-col-reverse gap-3 border-t pt-5 sm:flex-row sm:justify-end">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    disabled={isGeneratingWithAi}
+                    onClick={() => {
+                      resetAiBuilder();
+                      setIsAskingAi(false);
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                  <Button type="button" variant="outline" disabled={isGeneratingWithAi} onClick={resetAiBuilder}>
+                    Clear chat
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+
+            <div className="space-y-6">
+              <Card className="rounded-lg">
+                <CardHeader>
+                  <CardTitle className="text-base">AI builder flow</CardTitle>
+                  <CardDescription>
+                    AI creates the complete form from one plain-language request.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4 text-sm">
+                  <div className="flex gap-3">
+                    <Bot className="mt-0.5 size-4 text-muted-foreground" />
+                    <div>
+                      <p className="font-medium">Ask one question at a time</p>
+                      <p className="text-muted-foreground">
+                        Write a short request like “create a feedback form”.
+                      </p>
+                    </div>
+                  </div>
+                  <Separator />
+                  <div className="flex gap-3">
+                    <ArrowRight className="mt-0.5 size-4 text-muted-foreground" />
+                    <div>
+                      <p className="font-medium">Review before creation</p>
+                      <p className="text-muted-foreground">
+                        Inngest generates and saves the form with fields automatically.
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        ) : !isCreatingForm ? (
           <Card className="rounded-lg">
             <CardHeader className="border-b">
               <CardTitle>Your forms</CardTitle>

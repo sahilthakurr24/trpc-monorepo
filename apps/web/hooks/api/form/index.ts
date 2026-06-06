@@ -29,6 +29,28 @@ export function useCreateForm() {
   };
 }
 
+export function useGenerateFormWithAi() {
+  const {
+    mutateAsync: generateFormWithAiAsync,
+    error,
+    isError,
+    isIdle,
+    isPending,
+    isSuccess,
+    status,
+  } = trpc.form.generateFormWithAi.useMutation();
+
+  return {
+    generateFormWithAiAsync,
+    error,
+    isError,
+    isIdle,
+    isPending,
+    isSuccess,
+    status,
+  };
+}
+
 export function useUserForms() {
   const {
     data: forms = [],

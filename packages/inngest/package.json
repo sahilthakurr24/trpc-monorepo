@@ -9,7 +9,10 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "inngest": "^4.5.0"
+    "@repo/services": "workspace:*",
+    "ai": "^6.0.197",
+    "inngest": "^4.5.0",
+    "zod": "^4.3.5"
   },
   "devDependencies": {
     "@repo/typescript-config": "workspace:*",

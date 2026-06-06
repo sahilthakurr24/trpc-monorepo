@@ -1,4 +1,5 @@
-import { formFieldService, formService, formSubmissionService } from "../services";
+import { inngest } from "@repo/inngest";
+import { formFieldService, formService, formSubmissionService, userService } from "../services";
 import { authenticationProcedure, publicProcedure, router } from "../trpc";
 import { generatePath } from "../utils/path-generator";
 import {
@@ -9,6 +10,8 @@ import {
   deleteFormFieldInput,
   deleteFormFieldOutput,
   formFieldOutput,
+  generateFormWithAiInput,
+  generateFormWithAiOutput,
   getFormFieldInput,
   getFormSubmissionsByFormIdInput,
   getFormSubmissionsByFormIdOutput,
@@ -27,6 +30,31 @@ const TAGS = ["Form"];
 const getPath = generatePath("/form");
 
 export const formRouter = router({
+  generateFormWithAi: authenticationProcedure
+    .meta({
+      openapi: {
+        method: "POST",
+        path: getPath("/generateFormWithAi"),
+        tags: TAGS,
+      },
+    })
+    .input(generateFormWithAiInput)
+    .output(generateFormWithAiOutput)
+    .mutation(async ({ input, ctx }) => {
+      const user = await userService.getUserInfoById(ctx.user.id);
+
+      const result = await inngest.send({
+        name: "form/generate.requested",
+        data: {
+          prompt: input.prompt,
+          userName: user.fullName,
+          createdBy: ctx.user.id,
+        },
+      });
+
+      return { ids: result.ids };
+    }),
+
   getPublicFormById: publicProcedure
     .meta({
       openapi: {

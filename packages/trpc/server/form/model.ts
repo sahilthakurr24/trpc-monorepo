@@ -132,3 +132,11 @@ export const getFormSubmissionsByFormIdOutput = z.array(
     updatedAt: z.date().nullable().describe("Last updated timestamp"),
   })
 );
+
+export const generateFormWithAiInput = z.object({
+  prompt: z.string().trim().min(1).max(1000).describe("Natural language form request"),
+});
+
+export const generateFormWithAiOutput = z.object({
+  ids: z.array(z.string()).describe("Inngest event IDs"),
+});
