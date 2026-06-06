@@ -21,6 +21,7 @@
     "typescript": "^5.9.3"
   },
   "dependencies": {
+    "@repo/inngest" : "workspace:*",
     "@repo/logger": "workspace:*",
     "@repo/trpc": "workspace:*",
     "@scalar/express-api-reference": "^0.8.30",
@@ -29,7 +30,6 @@
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
     "express": "^5.2.1",
-    "inngest": "^4.5.0",
     "trpc-to-openapi": "^3.1.0",
     "zod": "^4.3.5"
   }

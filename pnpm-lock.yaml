@@ -24,6 +24,9 @@ importers:
 
   apps/api:
     dependencies:
+      '@repo/inngest':
+        specifier: workspace:*
+        version: link:../../packages/inngest
       '@repo/logger':
         specifier: workspace:*
         version: link:../../packages/logger
@@ -48,9 +51,6 @@ importers:
       express:
         specifier: ^5.2.1
         version: 5.2.1
-      inngest:
-        specifier: ^4.5.0
-        version: 4.5.0(@opentelemetry/core@2.7.1(@opentelemetry/api@1.9.1))(express@5.2.1)(h3@1.15.1)(next@16.1.0(@opentelemetry/api@1.9.1)(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(react@19.2.0)(typescript@5.9.3)(zod@4.3.5)
       trpc-to-openapi:
         specifier: ^3.1.0
         version: 3.1.0(@trpc/server@11.8.1(typescript@5.9.3))(zod-openapi@5.4.5(zod@4.3.5))(zod@4.3.5)
@@ -373,6 +373,22 @@ importers:
         specifier: ^8.50.0
         version: 8.50.0(eslint@9.39.1(jiti@2.6.1))(typescript@5.9.2)
 
+  packages/inngest:
+    dependencies:
+      inngest:
+        specifier: ^4.5.0
+        version: 4.5.0(@opentelemetry/core@2.7.1(@opentelemetry/api@1.9.1))(express@5.2.1)(h3@1.15.1)(next@16.1.0(@opentelemetry/api@1.9.1)(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(react@19.2.0)(typescript@5.9.3)(zod@4.3.5)
+    devDependencies:
+      '@repo/typescript-config':
+        specifier: workspace:*
+        version: link:../typescript-config
+      '@types/node':
+        specifier: ^22.15.3
+        version: 22.15.3
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
+
   packages/logger:
     dependencies:
       winston:
@@ -431,6 +447,9 @@ importers:
 
   packages/trpc:
     dependencies:
+      '@repo/inngest':
+        specifier: workspace:*
+        version: link:../inngest
       '@repo/services':
         specifier: workspace:*
         version: link:../services
