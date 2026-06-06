@@ -1,7 +1,8 @@
-import FormService from "@repo/services/form";
-import FormFieldService from "@repo/services/formField";
 import { gpt4omini, inngest } from "./client";
 import { z } from "zod";
+import { db } from "@repo/database";
+import { formsTable } from "@repo/database/models/form";
+import { formFieldsTable } from "@repo/database/models/form-field";
 
 const fieldTypeSchema = z.enum(["TEXT", "NUMBER", "EMAIL", "YES_NO", "PASSWORD"]);
 
@@ -126,9 +127,6 @@ export const generatedFormSchema = z
   });
 
 export type GeneratedForm = z.infer<typeof generatedFormSchema>;
-
-const formService = new FormService();
-const formFieldService = new FormFieldService();
 
 function getGeneratedFormText(response: { output?: unknown[] }) {
   for (const item of response.output ?? []) {
@@ -275,32 +273,51 @@ export const generateFormWithAi = inngest.createFunction(
     });
 
     const createdForm = await step.run("create-generated-form", async () => {
-      const createdBy = String(event.data.createdBy ?? "");
-      if (!createdBy) {
-        throw new Error("createdBy is required to create an AI generated form");
-      }
+      return db.transaction(async (tx) => {
+        const createdBy = String(event.data.createdBy ?? "");
 
-      const { id: formId } = await formService.createForm({
-        title: generatedForm.title,
-        description: generatedForm.description,
-        createdBy,
+        if (!createdBy) {
+          throw new Error("createdBy is required to create an AI generated form");
+        }
+
+        const [form] = await tx
+          .insert(formsTable)
+          .values({
+            title: generatedForm.title,
+            description: generatedForm.description,
+            createdBy,
+          })
+          .returning({ id: formsTable.id });
+
+        if (!form?.id) {
+          throw new Error("Failed to create form");
+        }
+
+        const insertedFields = await tx
+          .insert(formFieldsTable)
+          .values(
+            generatedForm.fields.map((field, index) => ({
+              label: field.label,
+              label_key: field.labelKey,
+              description: field.description,
+              placeholder: field.placeholder,
+              isRequired: field.isRequired,
+              index: String(index + 1),
+              type: field.type,
+              formId: form.id,
+            })),
+          )
+          .returning({ id: formFieldsTable.id });
+
+        if (insertedFields.length !== generatedForm.fields.length) {
+          throw new Error("Failed to create all generated form fields");
+        }
+
+        return {
+          id: form.id,
+          fieldIds: insertedFields.map((field) => field.id),
+        };
       });
-
-      const fieldIds: string[] = [];
-      for (const field of generatedForm.fields) {
-        const { id } = await formFieldService.createField({
-          label: field.label,
-          labelKey: field.labelKey,
-          description: field.description ?? undefined,
-          placeholder: field.placeholder ?? undefined,
-          isRequired: field.isRequired,
-          type: field.type,
-          formId,
-        });
-        fieldIds.push(id);
-      }
-
-      return { id: formId, fieldIds };
     });
 
     return {
