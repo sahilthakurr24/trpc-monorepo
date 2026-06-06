@@ -1,12 +1,19 @@
-import { createFormInput, getPublicFormByIdInput, listFormByUserId } from "./model";
+import {
+  createFormInput,
+  deleteFormInput,
+  getPublicFormByIdInput,
+  listFormByUserId,
+} from "./model";
 import type {
+  DeleteFormInputType,
   GetPublicFormByIdInputType,
   ListFormByUserIdType,
   createFormInputType,
 } from "./model";
 import { formsTable } from "@repo/database/models/form";
 import { formFieldsTable } from "@repo/database/models/form-field";
-import { asc, db, eq } from "@repo/database";
+import { formSubmissionTable } from "@repo/database/models/form-submission";
+import { and, asc, db, eq } from "@repo/database";
 
 export interface Form {
   id: string;
@@ -45,6 +52,34 @@ class FormService {
       throw new Error("Something went wrong while creating the form");
     }
     return { id: result[0]?.id };
+  }
+
+  public async deleteForm(payload: DeleteFormInputType) {
+    const { id, createdBy } = await deleteFormInput.parseAsync(payload);
+
+    return db.transaction(async (tx) => {
+      const [form] = await tx
+        .select({ id: formsTable.id })
+        .from(formsTable)
+        .where(and(eq(formsTable.id, id), eq(formsTable.createdBy, createdBy)));
+
+      if (!form?.id) {
+        throw new Error(`Form with ${id} does not exist`);
+      }
+
+      await tx.delete(formSubmissionTable).where(eq(formSubmissionTable.formId, id));
+      await tx.delete(formFieldsTable).where(eq(formFieldsTable.formId, id));
+
+      const result = await tx.delete(formsTable).where(eq(formsTable.id, id)).returning({
+        id: formsTable.id,
+      });
+
+      if (!result || result.length === 0 || !result[0]?.id) {
+        throw new Error(`Form with ${id} does not exist`);
+      }
+
+      return { id: result[0].id };
+    });
   }
 
   public async listFormByUserId(payload: ListFormByUserIdType) {

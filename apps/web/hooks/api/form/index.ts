@@ -29,6 +29,33 @@ export function useCreateForm() {
   };
 }
 
+export function useDeleteForm() {
+  const utils = trpc.useUtils();
+  const {
+    mutateAsync: deleteFormAsync,
+    error,
+    isError,
+    isIdle,
+    isPending,
+    isSuccess,
+    status,
+  } = trpc.form.deleteForm.useMutation({
+    onSuccess: async () => {
+      await utils.form.listFormByUserId.invalidate();
+    },
+  });
+
+  return {
+    deleteFormAsync,
+    error,
+    isError,
+    isIdle,
+    isPending,
+    isSuccess,
+    status,
+  };
+}
+
 export function useGenerateFormWithAi() {
   const {
     mutateAsync: generateFormWithAiAsync,
@@ -58,6 +85,7 @@ export function useUserForms() {
     isFetched,
     isFetching,
     isLoading,
+    refetch,
     status,
   } = trpc.form.listFormByUserId.useQuery();
   return {
@@ -66,6 +94,7 @@ export function useUserForms() {
     isFetched,
     isFetching,
     isLoading,
+    refetch,
     status,
   };
 }

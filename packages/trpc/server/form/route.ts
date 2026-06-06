@@ -7,6 +7,8 @@ import {
   createFormFieldOutput,
   createFormInput,
   createFormOutput,
+  deleteFormInput,
+  deleteFormOutput,
   deleteFormFieldInput,
   deleteFormFieldOutput,
   formFieldOutput,
@@ -101,6 +103,21 @@ export const formRouter = router({
       return {
         id,
       };
+    }),
+
+  deleteForm: authenticationProcedure
+    .meta({
+      openapi: {
+        method: "DELETE",
+        path: getPath("/deleteForm"),
+        tags: TAGS,
+      },
+    })
+    .input(deleteFormInput)
+    .output(deleteFormOutput)
+    .mutation(async ({ input, ctx }) => {
+      const { id } = await formService.deleteForm({ id: input.id, createdBy: ctx.user.id });
+      return { id };
     }),
 
   listFormByUserId: authenticationProcedure

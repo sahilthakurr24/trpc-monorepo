@@ -57,7 +57,7 @@ export default function SigninPage() {
       </div>
 
       <div className="relative hidden overflow-hidden bg-muted lg:block">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_25%_20%,hsl(var(--primary)/0.22),transparent_34%),linear-gradient(135deg,hsl(var(--muted)),hsl(var(--background))_54%,hsl(var(--primary)/0.18))]" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_25%_20%,color-mix(in_oklab,var(--primary)_22%,transparent),transparent_34%),linear-gradient(135deg,var(--muted),var(--background)_54%,color-mix(in_oklab,var(--primary)_18%,transparent))]" />
         <div className="relative flex h-full flex-col justify-end p-12">
           <div className="max-w-md space-y-3">
             <p className="text-sm font-medium text-muted-foreground">Streamyst</p>

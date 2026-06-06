@@ -8,6 +8,13 @@ export const createFormInput = z.object({
 
 export type createFormInputType = z.infer<typeof createFormInput>;
 
+export const deleteFormInput = z.object({
+  id: z.uuid().describe("ID of the form"),
+  createdBy: z.uuid().describe("ID of the form owner"),
+});
+
+export type DeleteFormInputType = z.infer<typeof deleteFormInput>;
+
 export const listFormByUserId = z.object({
   id: z.string().describe("ID of the user"),
 });

@@ -9,6 +9,14 @@ export const createFormOutput = z.object({
   id: z.string().describe("id of the created form"),
 });
 
+export const deleteFormInput = z.object({
+  id: z.uuid().describe("ID of the form"),
+});
+
+export const deleteFormOutput = z.object({
+  id: z.string().describe("Id of the deleted form"),
+});
+
 export const listFormByUserIdOutput = z.array(
   z.object({
     id: z.string().describe("Id of the form"),
@@ -102,7 +110,7 @@ export const submitPublicFormInput = z.object({
       z.object({
         formFieldId: z.uuid().describe("ID of the form field"),
         value: z.string().describe("Submitted value"),
-      })
+      }),
     )
     .describe("Submitted form values"),
 });
@@ -124,13 +132,13 @@ export const getFormSubmissionsByFormIdOutput = z.array(
         z.object({
           formFieldId: z.string().describe("ID of the form field"),
           value: z.string().describe("Submitted value"),
-        })
+        }),
       )
       .nullable()
       .describe("Submitted form values"),
     createdAt: z.date().nullable().describe("Creation timestamp"),
     updatedAt: z.date().nullable().describe("Last updated timestamp"),
-  })
+  }),
 );
 
 export const generateFormWithAiInput = z.object({

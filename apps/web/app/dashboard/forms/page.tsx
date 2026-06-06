@@ -1,13 +1,33 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ArrowRight, Bot, FileText, Loader2, Plus, Send, Sparkles } from "lucide-react";
+import {
+  ArrowRight,
+  Bot,
+  CheckCircle2,
+  FileText,
+  Loader2,
+  Plus,
+  Send,
+  Sparkles,
+  Trash2,
+} from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "~/components/ui/alert-dialog";
 import { Button } from "~/components/ui/button";
 import {
   Card,
@@ -27,6 +47,7 @@ import {
   FormMessage,
 } from "~/components/ui/form";
 import { Input } from "~/components/ui/input";
+import { Progress } from "~/components/ui/progress";
 import { Separator } from "~/components/ui/separator";
 import {
   Table,
@@ -37,7 +58,12 @@ import {
   TableRow,
 } from "~/components/ui/table";
 import { Textarea } from "~/components/ui/textarea";
-import { useCreateForm, useGenerateFormWithAi, useUserForms } from "~/hooks/api/form";
+import {
+  useCreateForm,
+  useDeleteForm,
+  useGenerateFormWithAi,
+  useUserForms,
+} from "~/hooks/api/form";
 
 const createFormSchema = z.object({
   title: z
@@ -53,6 +79,11 @@ const createFormSchema = z.object({
 });
 
 type CreateFormValues = z.infer<typeof createFormSchema>;
+type AiGenerationStatus = "idle" | "starting" | "generating" | "rendering";
+type FormDeleteTarget = {
+  id: string;
+  title: string;
+};
 
 const defaultValues: CreateFormValues = {
   title: "",
@@ -75,9 +106,19 @@ export default function FormsPage() {
   const [isAskingAi, setIsAskingAi] = useState(false);
   const [aiPrompt, setAiPrompt] = useState("");
   const [submittedAiPrompt, setSubmittedAiPrompt] = useState("");
+  const [aiGenerationStatus, setAiGenerationStatus] = useState<AiGenerationStatus>("idle");
+  const [aiProgress, setAiProgress] = useState(0);
+  const [deletingFormId, setDeletingFormId] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<FormDeleteTarget | null>(null);
   const { createFormAsync, error, isPending } = useCreateForm();
+  const { deleteFormAsync, isPending: isDeletingForm } = useDeleteForm();
   const { generateFormWithAiAsync, isPending: isGeneratingWithAi } = useGenerateFormWithAi();
-  const { forms, error: formsError, isLoading: isFormsLoading } = useUserForms();
+  const {
+    forms,
+    error: formsError,
+    isLoading: isFormsLoading,
+    refetch: refetchForms,
+  } = useUserForms();
   const form = useForm<CreateFormValues>({
     resolver: zodResolver(createFormSchema),
     defaultValues,
@@ -85,10 +126,21 @@ export default function FormsPage() {
   });
 
   const descriptionValue = form.watch("description");
+  const isAiWorking = isGeneratingWithAi || aiGenerationStatus !== "idle";
+  const aiStatusCopy =
+    aiGenerationStatus === "starting"
+      ? "Sending your request to AI"
+      : aiGenerationStatus === "generating"
+        ? "Generating and saving your form"
+        : aiGenerationStatus === "rendering"
+          ? "Rendering the new form in your dashboard"
+          : "Ready for your request";
 
   const resetAiBuilder = () => {
     setAiPrompt("");
     setSubmittedAiPrompt("");
+    setAiGenerationStatus("idle");
+    setAiProgress(0);
   };
 
   const onSubmit = async (values: CreateFormValues) => {
@@ -112,18 +164,80 @@ export default function FormsPage() {
     }
 
     setSubmittedAiPrompt(prompt);
+    setAiGenerationStatus("starting");
+    setAiProgress(16);
 
     try {
+      const existingFormIds = new Set(forms.map((userForm) => userForm.id));
+
       await generateFormWithAiAsync({
         prompt,
       });
 
-      toast.success("AI form generation started");
+      setAiGenerationStatus("generating");
+      setAiProgress(38);
       setAiPrompt("");
+
+      const startedAt = Date.now();
+      const timeoutMs = 90_000;
+      let generatedFormId: string | undefined;
+
+      while (Date.now() - startedAt < timeoutMs) {
+        await new Promise((resolve) => setTimeout(resolve, 2500));
+        const elapsedRatio = Math.min((Date.now() - startedAt) / timeoutMs, 1);
+        setAiProgress(Math.min(88, 38 + Math.round(elapsedRatio * 48)));
+
+        const result = await refetchForms();
+        const updatedForms = result.data ?? [];
+        generatedFormId = updatedForms.find((userForm) => !existingFormIds.has(userForm.id))?.id;
+
+        if (generatedFormId) {
+          break;
+        }
+      }
+
+      if (!generatedFormId) {
+        setAiGenerationStatus("idle");
+        setAiProgress(0);
+        toast.error(
+          "AI is still generating. Stay on this page and refresh the forms list shortly.",
+        );
+        return;
+      }
+
+      setAiGenerationStatus("rendering");
+      setAiProgress(100);
+      await refetchForms();
       setIsAskingAi(false);
+      setSubmittedAiPrompt("");
+      setAiGenerationStatus("idle");
+      setAiProgress(0);
+      toast.success("AI form generated");
       router.refresh();
     } catch {
+      setAiGenerationStatus("idle");
+      setAiProgress(0);
       toast.error("Unable to start AI form generation");
+    }
+  };
+
+  const onConfirmDeleteForm = async () => {
+    if (!deleteTarget) {
+      return;
+    }
+
+    setDeletingFormId(deleteTarget.id);
+
+    try {
+      await deleteFormAsync({ id: deleteTarget.id });
+      toast.success("Form deleted");
+      setDeleteTarget(null);
+      await refetchForms();
+      router.refresh();
+    } catch {
+      toast.error("Unable to delete form");
+    } finally {
+      setDeletingFormId(null);
     }
   };
 
@@ -138,13 +252,14 @@ export default function FormsPage() {
                 ? "Start a new form with a clear title and description."
                 : isAskingAi
                   ? "Describe the form you want and refine it with AI."
-                : "Create, manage, and edit your workspace forms."}
+                  : "Create, manage, and edit your workspace forms."}
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <Button
               type="button"
               variant={isAskingAi ? "default" : "outline"}
+              disabled={isAiWorking}
               onClick={() => {
                 if (!isAskingAi) {
                   form.reset(defaultValues);
@@ -166,6 +281,7 @@ export default function FormsPage() {
             <Button
               type="button"
               variant={isCreatingForm ? "outline" : "default"}
+              disabled={isAiWorking}
               onClick={() => {
                 if (isCreatingForm) {
                   form.reset(defaultValues);
@@ -187,132 +303,118 @@ export default function FormsPage() {
         </div>
 
         {isAskingAi ? (
-          <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
-            <Card className="rounded-lg">
-              <CardHeader className="border-b">
-                <div className="flex size-10 items-center justify-center rounded-lg border bg-muted">
-                  <Bot className="size-5 text-muted-foreground" />
+          <Card className="overflow-hidden rounded-lg">
+            <CardHeader className="border-b bg-muted/30">
+              <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+                <div className="flex gap-3">
+                  <div className="flex size-11 shrink-0 items-center justify-center rounded-lg border bg-background">
+                    <Bot className="size-5 text-muted-foreground" />
+                  </div>
+                  <div className="space-y-1">
+                    <CardTitle>AI form studio</CardTitle>
+                    <CardDescription>
+                      Describe the outcome you need. AI will generate the form and publish it to
+                      this dashboard.
+                    </CardDescription>
+                  </div>
                 </div>
-                <CardTitle>Ask AI to create a form</CardTitle>
-                <CardDescription>
-                  Send one request and AI will generate the title, description, and fields.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-5">
-                <div className="space-y-4 rounded-lg border bg-muted/20 p-4">
-                  <div className="space-y-3">
-                    <div className="flex gap-3">
-                      <div className="flex size-8 shrink-0 items-center justify-center rounded-md border bg-background">
-                        <Sparkles className="size-4 text-muted-foreground" />
-                      </div>
-                      <div className="max-w-[82%] rounded-lg border bg-background px-3 py-2 text-sm">
-                        Tell me what form you want. I will create the title, description, and
-                        fields automatically.
-                      </div>
-                    </div>
+                <div className="flex items-center gap-2 rounded-md border bg-background px-3 py-2 text-sm">
+                  {isAiWorking ? (
+                    <Loader2 className="size-4 animate-spin text-muted-foreground" />
+                  ) : (
+                    <CheckCircle2 className="size-4 text-muted-foreground" />
+                  )}
+                  <span className="font-medium">{aiStatusCopy}</span>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-5 p-4 md:p-6">
+              <div className="min-h-[320px] space-y-4 rounded-lg border bg-background p-4">
+                <div className="flex gap-3">
+                  <div className="flex size-9 shrink-0 items-center justify-center rounded-md border bg-muted">
+                    <Sparkles className="size-4 text-muted-foreground" />
+                  </div>
+                  <div className="max-w-[760px] rounded-lg border bg-muted/30 px-4 py-3 text-sm leading-6">
+                    Share the form purpose, audience, and any fields you already have in mind. I
+                    will create a polished first draft with the right field types.
+                  </div>
+                </div>
 
-                    {submittedAiPrompt ? (
+                {submittedAiPrompt ? (
+                  <div className="flex justify-end">
+                    <div className="max-w-[760px] rounded-lg bg-primary px-4 py-3 text-sm leading-6 text-primary-foreground">
+                      {submittedAiPrompt}
+                    </div>
+                  </div>
+                ) : null}
+
+                {isAiWorking ? (
+                  <div className="flex gap-3">
+                    <div className="flex size-9 shrink-0 items-center justify-center rounded-md border bg-muted">
+                      <Loader2 className="size-4 animate-spin text-muted-foreground" />
+                    </div>
+                    <div className="w-full max-w-[760px] space-y-3 rounded-lg border bg-muted/30 px-4 py-3">
+                      <div className="flex items-center justify-between gap-3 text-sm">
+                        <span className="font-medium">{aiStatusCopy}</span>
+                        <span className="text-muted-foreground">{aiProgress}%</span>
+                      </div>
+                      <Progress value={aiProgress} />
+                      <p className="text-sm text-muted-foreground">
+                        This page will return to your forms only after the generated form is
+                        available in the dashboard.
+                      </p>
+                    </div>
+                  </div>
+                ) : null}
+              </div>
+
+              <div className="space-y-3">
+                <Textarea
+                  value={aiPrompt}
+                  disabled={isAiWorking}
+                  onChange={(event) => setAiPrompt(event.target.value)}
+                  className="min-h-32 resize-none"
+                  placeholder="Create a customer onboarding form for a B2B SaaS product. Include company details, role, team size, goals, timeline, and consent to be contacted."
+                />
+                <div className="flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      disabled={isAiWorking}
+                      onClick={() => {
+                        resetAiBuilder();
+                        setIsAskingAi(false);
+                      }}
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      disabled={isAiWorking}
+                      onClick={resetAiBuilder}
+                    >
+                      Clear
+                    </Button>
+                  </div>
+                  <Button type="button" disabled={isAiWorking} onClick={onAiPromptSubmit}>
+                    {isAiWorking ? (
                       <>
-                        <div className="flex justify-end">
-                          <div className="max-w-[82%] rounded-lg bg-primary px-3 py-2 text-sm text-primary-foreground">
-                            {submittedAiPrompt}
-                          </div>
-                        </div>
-                        <div className="flex gap-3">
-                          <div className="flex size-8 shrink-0 items-center justify-center rounded-md border bg-background">
-                            {isGeneratingWithAi ? (
-                              <Loader2 className="size-4 animate-spin text-muted-foreground" />
-                            ) : (
-                              <Bot className="size-4 text-muted-foreground" />
-                            )}
-                          </div>
-                          <div className="max-w-[82%] rounded-lg border bg-background px-3 py-2 text-sm">
-                            {isGeneratingWithAi
-                              ? "Creating your form..."
-                              : "Your request was sent. The generated form will appear in your forms list after Inngest finishes."}
-                          </div>
-                        </div>
+                        <Loader2 className="size-4 animate-spin" />
+                        Generating
                       </>
-                    ) : null}
-                  </div>
-
-                  <div className="space-y-3 border-t pt-4">
-                    <Textarea
-                      value={aiPrompt}
-                      disabled={isGeneratingWithAi}
-                      onChange={(event) => setAiPrompt(event.target.value)}
-                      className="min-h-28 resize-none bg-background"
-                      placeholder="I want to create a feedback form for customers after they purchase a product."
-                    />
-                    <div className="flex justify-end">
-                      <Button type="button" disabled={isGeneratingWithAi} onClick={onAiPromptSubmit}>
-                        {isGeneratingWithAi ? (
-                          <>
-                            <Loader2 className="size-4 animate-spin" />
-                            Sending
-                          </>
-                        ) : (
-                          <>
-                            <Send className="size-4" />
-                            Send to AI
-                          </>
-                        )}
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex flex-col-reverse gap-3 border-t pt-5 sm:flex-row sm:justify-end">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    disabled={isGeneratingWithAi}
-                    onClick={() => {
-                      resetAiBuilder();
-                      setIsAskingAi(false);
-                    }}
-                  >
-                    Cancel
-                  </Button>
-                  <Button type="button" variant="outline" disabled={isGeneratingWithAi} onClick={resetAiBuilder}>
-                    Clear chat
+                    ) : (
+                      <>
+                        <Send className="size-4" />
+                        Generate form
+                      </>
+                    )}
                   </Button>
                 </div>
-              </CardContent>
-            </Card>
-
-            <div className="space-y-6">
-              <Card className="rounded-lg">
-                <CardHeader>
-                  <CardTitle className="text-base">AI builder flow</CardTitle>
-                  <CardDescription>
-                    AI creates the complete form from one plain-language request.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4 text-sm">
-                  <div className="flex gap-3">
-                    <Bot className="mt-0.5 size-4 text-muted-foreground" />
-                    <div>
-                      <p className="font-medium">Ask one question at a time</p>
-                      <p className="text-muted-foreground">
-                        Write a short request like “create a feedback form”.
-                      </p>
-                    </div>
-                  </div>
-                  <Separator />
-                  <div className="flex gap-3">
-                    <ArrowRight className="mt-0.5 size-4 text-muted-foreground" />
-                    <div>
-                      <p className="font-medium">Review before creation</p>
-                      <p className="text-muted-foreground">
-                        Inngest generates and saves the form with fields automatically.
-                      </p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </div>
+              </div>
+            </CardContent>
+          </Card>
         ) : !isCreatingForm ? (
           <Card className="rounded-lg">
             <CardHeader className="border-b">
@@ -334,7 +436,7 @@ export default function FormsPage() {
                     <TableHead>Description</TableHead>
                     <TableHead className="hidden w-36 md:table-cell">Created</TableHead>
                     <TableHead className="hidden w-36 lg:table-cell">Updated</TableHead>
-                    <TableHead className="w-28 px-6 text-right">Builder</TableHead>
+                    <TableHead className="w-48 px-6 text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -378,13 +480,31 @@ export default function FormsPage() {
                         <TableCell className="hidden text-muted-foreground lg:table-cell">
                           {formatDate(userForm.updatedAt)}
                         </TableCell>
-                        <TableCell className="px-6 text-right">
-                          <Button asChild size="sm" variant="outline">
-                            <Link href={`/dashboard/forms/${userForm.id}`}>
-                              Edit
-                              <ArrowRight className="size-4" />
-                            </Link>
-                          </Button>
+                        <TableCell className="px-6">
+                          <div className="flex justify-end gap-2">
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="destructive"
+                              disabled={isDeletingForm}
+                              onClick={() =>
+                                setDeleteTarget({ id: userForm.id, title: userForm.title })
+                              }
+                            >
+                              {deletingFormId === userForm.id ? (
+                                <Loader2 className="size-4 animate-spin" />
+                              ) : (
+                                <Trash2 className="size-4" />
+                              )}
+                              Delete
+                            </Button>
+                            <Button asChild size="sm" variant="outline">
+                              <Link href={`/dashboard/forms/${userForm.id}`}>
+                                Edit
+                                <ArrowRight className="size-4" />
+                              </Link>
+                            </Button>
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))
@@ -555,6 +675,38 @@ export default function FormsPage() {
           </div>
         )}
       </div>
+      <AlertDialog
+        open={deleteTarget !== null}
+        onOpenChange={(open) => {
+          if (!open && !isDeletingForm) {
+            setDeleteTarget(null);
+          }
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete form?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete "{deleteTarget?.title}" with its fields and submissions.
+              This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeletingForm}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={isDeletingForm}
+              onClick={(event) => {
+                event.preventDefault();
+                void onConfirmDeleteForm();
+              }}
+              className="bg-destructive text-white hover:bg-destructive/90"
+            >
+              {isDeletingForm ? <Loader2 className="size-4 animate-spin" /> : null}
+              Delete form
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
