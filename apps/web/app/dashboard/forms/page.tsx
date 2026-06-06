@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -49,6 +49,7 @@ import {
 import { Input } from "~/components/ui/input";
 import { Progress } from "~/components/ui/progress";
 import { Separator } from "~/components/ui/separator";
+import { Skeleton } from "~/components/ui/skeleton";
 import {
   Table,
   TableBody,
@@ -90,6 +91,18 @@ const defaultValues: CreateFormValues = {
   description: "",
 };
 
+const initialAiMessage =
+  "Share the form purpose, audience, and any fields you already have in mind. I will create a polished first draft with the right field types.";
+
+const generationMessages: Record<AiGenerationStatus, string> = {
+  idle: "",
+  starting: "Sending your request to the AI form studio.",
+  generating:
+    "Drafting the title, description, field labels, required fields, and database records now.",
+  rendering:
+    "The generated form is saved. I am refreshing the dashboard so it appears in your list.",
+};
+
 function formatDate(value: Date | string | null) {
   if (!value) return "Not updated";
 
@@ -98,6 +111,37 @@ function formatDate(value: Date | string | null) {
     day: "numeric",
     year: "numeric",
   }).format(new Date(value));
+}
+
+function useTypewriterText(text: string, enabled = true, speedMs = 18) {
+  const [displayedText, setDisplayedText] = useState(enabled ? "" : text);
+
+  useEffect(() => {
+    if (!enabled) {
+      setDisplayedText(text);
+      return;
+    }
+
+    setDisplayedText("");
+
+    if (!text) {
+      return;
+    }
+
+    let index = 0;
+    const interval = window.setInterval(() => {
+      index += 1;
+      setDisplayedText(text.slice(0, index));
+
+      if (index >= text.length) {
+        window.clearInterval(interval);
+      }
+    }, speedMs);
+
+    return () => window.clearInterval(interval);
+  }, [enabled, speedMs, text]);
+
+  return displayedText;
 }
 
 export default function FormsPage() {
@@ -127,6 +171,12 @@ export default function FormsPage() {
 
   const descriptionValue = form.watch("description");
   const isAiWorking = isGeneratingWithAi || aiGenerationStatus !== "idle";
+  const typedInitialAiMessage = useTypewriterText(initialAiMessage, isAskingAi, 16);
+  const typedGenerationMessage = useTypewriterText(
+    generationMessages[aiGenerationStatus],
+    isAiWorking,
+    18,
+  );
   const aiStatusCopy =
     aiGenerationStatus === "starting"
       ? "Sending your request to AI"
@@ -335,8 +385,20 @@ export default function FormsPage() {
                     <Sparkles className="size-4 text-muted-foreground" />
                   </div>
                   <div className="max-w-[760px] rounded-lg border bg-muted/30 px-4 py-3 text-sm leading-6">
-                    Share the form purpose, audience, and any fields you already have in mind. I
-                    will create a polished first draft with the right field types.
+                    {typedInitialAiMessage ? (
+                      <>
+                        {typedInitialAiMessage}
+                        {typedInitialAiMessage.length < initialAiMessage.length ? (
+                          <span className="ml-0.5 inline-block h-4 w-1 animate-pulse rounded bg-primary align-middle" />
+                        ) : null}
+                      </>
+                    ) : (
+                      <div className="space-y-2">
+                        <Skeleton className="h-4 w-72 max-w-full" />
+                        <Skeleton className="h-4 w-96 max-w-full" />
+                        <Skeleton className="h-4 w-56 max-w-full" />
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -360,8 +422,11 @@ export default function FormsPage() {
                       </div>
                       <Progress value={aiProgress} />
                       <p className="text-sm text-muted-foreground">
-                        This page will return to your forms only after the generated form is
-                        available in the dashboard.
+                        {typedGenerationMessage}
+                        {typedGenerationMessage.length <
+                        generationMessages[aiGenerationStatus].length ? (
+                          <span className="ml-0.5 inline-block h-4 w-1 animate-pulse rounded bg-primary align-middle" />
+                        ) : null}
                       </p>
                     </div>
                   </div>
@@ -444,19 +509,22 @@ export default function FormsPage() {
                     Array.from({ length: 3 }).map((_, index) => (
                       <TableRow key={index}>
                         <TableCell className="px-6">
-                          <div className="h-4 w-40 rounded bg-muted" />
+                          <Skeleton className="h-4 w-40" />
                         </TableCell>
                         <TableCell>
-                          <div className="h-4 w-full max-w-md rounded bg-muted" />
+                          <Skeleton className="h-4 w-full max-w-md" />
                         </TableCell>
                         <TableCell className="hidden md:table-cell">
-                          <div className="h-4 w-24 rounded bg-muted" />
+                          <Skeleton className="h-4 w-24" />
                         </TableCell>
                         <TableCell className="hidden lg:table-cell">
-                          <div className="h-4 w-24 rounded bg-muted" />
+                          <Skeleton className="h-4 w-24" />
                         </TableCell>
                         <TableCell className="px-6">
-                          <div className="ml-auto h-8 w-16 rounded bg-muted" />
+                          <div className="flex justify-end gap-2">
+                            <Skeleton className="h-8 w-20" />
+                            <Skeleton className="h-8 w-16" />
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))
