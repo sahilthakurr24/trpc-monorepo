@@ -38,7 +38,7 @@ export const formRouter = router({
     .input(getPublicFormByIdInput)
     .output(getPublicFormByIdOutput)
     .query(async ({ input }) => {
-      const { form } = await formService.getPublicFormById(input);
+      const form = await formService.getPublicFormById(input);
       return form;
     }),
 

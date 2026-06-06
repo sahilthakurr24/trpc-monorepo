@@ -8,6 +8,33 @@ import { formsTable } from "@repo/database/models/form";
 import { formFieldsTable } from "@repo/database/models/form-field";
 import { asc, db, eq } from "@repo/database";
 
+export interface Form {
+  id: string;
+  title: string;
+  description: string | null;
+  createdAt: Date | null;
+  updatedAt: Date | null;
+}
+
+export interface FormField {
+  id: string;
+  label: string;
+  labelKey: string;
+  description: string | null;
+  placeholder: string | null;
+  isRequired: boolean;
+  index: string;
+  type: "TEXT" | "NUMBER" | "EMAIL" | "YES_NO" | "PASSWORD";
+  formId: string | null;
+  createdAt: Date | null;
+  updatedAt: Date | null;
+}
+
+export interface FormWithFieldRow {
+  form: Form;
+  field: FormField | null;
+}
+
 class FormService {
   public async createForm(payload: createFormInputType) {
     const { title, description, createdBy } = await createFormInput.parseAsync(payload);
@@ -48,7 +75,7 @@ class FormService {
   public async getPublicFormById(payload: GetPublicFormByIdInputType) {
     const { formId } = await getPublicFormByIdInput.parseAsync(payload);
 
-    const rows = await db
+    const rows: FormWithFieldRow[] = await db
       .select({
         form: {
           id: formsTable.id,
@@ -77,17 +104,18 @@ class FormService {
       .orderBy(asc(formFieldsTable.index));
 
     const form = rows[0]?.form;
+
     if (!form) {
       throw new Error(`Form with ${formId} does not exist`);
     }
 
-    const fields = rows.flatMap((row) => (row.field ? [row.field] : []));
+    const fields = rows
+      .map((row) => row.field)
+      .filter((field): field is FormField => field !== null);
 
     return {
-      form: {
-        ...form,
-        fields,
-      },
+      ...form,
+      fields,
     };
   }
 }
