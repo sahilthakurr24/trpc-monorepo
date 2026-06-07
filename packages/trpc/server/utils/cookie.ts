@@ -45,6 +45,6 @@ export function setAuthenticationCookie(ctx: TRPCCONTEXT, accessToken: string) {
 export function getAuthenticationCookie(ctx: TRPCCONTEXT) {
   return ctx.getCookie("authentication-token");
 }
-export function clearAuthenticationCookie(ctx: TRPCCONTEXT, accessToken: string) {
+export function clearAuthenticationCookie(ctx: TRPCCONTEXT) {
   ctx.clearCookie("authentication-token");
 }

@@ -57,7 +57,7 @@ export default function SigninPage() {
             <div className="flex size-6 items-center justify-center rounded-md bg-primary text-primary-foreground">
               <GalleryVerticalEnd className="size-4" />
             </div>
-            ChaiForm
+            formU
           </Link>
         </div>
 
@@ -76,13 +76,43 @@ export default function SigninPage() {
       </div>
 
       <div className="relative hidden overflow-hidden bg-muted lg:block">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_25%_20%,color-mix(in_oklab,var(--primary)_22%,transparent),transparent_34%),linear-gradient(135deg,var(--muted),var(--background)_54%,color-mix(in_oklab,var(--primary)_18%,transparent))]" />
-        <div className="relative flex h-full flex-col justify-end p-12">
-          <div className="max-w-md space-y-3">
-            <p className="text-sm font-medium text-muted-foreground">Streamyst</p>
-            <h2 className="text-4xl font-semibold tracking-normal">
-              Stream in style with your workspace ready.
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_24%_22%,color-mix(in_oklab,var(--primary)_28%,transparent),transparent_30%),radial-gradient(circle_at_78%_74%,color-mix(in_oklab,#22c55e_22%,transparent),transparent_32%),linear-gradient(135deg,#0f172a,#1f2937_48%,#0b1220)]" />
+        <div className="absolute inset-x-12 top-12 h-px bg-white/20" />
+        <div className="absolute inset-y-12 right-12 w-px bg-white/14" />
+        <div className="relative flex h-full flex-col justify-between p-12 text-white">
+          <div className="flex items-center justify-between text-sm">
+            <span className="font-semibold tracking-normal">formU</span>
+            <span className="rounded-full border border-white/18 px-3 py-1 text-white/70 shadow-lg shadow-black/20">
+              Workspace ready
+            </span>
+          </div>
+
+          <div className="max-w-xl space-y-6">
+            <p className="text-sm font-medium uppercase tracking-[0.24em] text-white/58">
+              Welcome back
+            </p>
+            <h2 className="text-6xl font-semibold leading-[0.96] tracking-normal drop-shadow-2xl">
+              Turn every answer into organized action.
             </h2>
+            <p className="max-w-md text-lg leading-8 text-white/72 drop-shadow-lg">
+              Sign in to manage forms, review submissions, and keep your team aligned from one
+              focused formU workspace.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-3 gap-3">
+            <div className="rounded-lg border border-white/16 bg-white/10 p-4 shadow-2xl shadow-black/25 backdrop-blur-md">
+              <p className="text-2xl font-semibold">Live</p>
+              <p className="text-xs text-white/64">Responses</p>
+            </div>
+            <div className="rounded-lg border border-white/16 bg-white/10 p-4 shadow-2xl shadow-black/25 backdrop-blur-md">
+              <p className="text-2xl font-semibold">Fast</p>
+              <p className="text-xs text-white/64">Insights</p>
+            </div>
+            <div className="rounded-lg border border-white/16 bg-white/10 p-4 shadow-2xl shadow-black/25 backdrop-blur-md">
+              <p className="text-2xl font-semibold">Clean</p>
+              <p className="text-xs text-white/64">Workflows</p>
+            </div>
           </div>
         </div>
       </div>

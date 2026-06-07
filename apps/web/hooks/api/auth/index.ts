@@ -71,6 +71,33 @@ export function useGoogleLogin() {
   };
 }
 
+export function useLogout() {
+  const utils = trpc.useUtils();
+  const {
+    mutateAsync: logoutAsync,
+    error,
+    isError,
+    isIdle,
+    isPending,
+    isSuccess,
+    status,
+  } = trpc.auth.logout.useMutation({
+    onSuccess: async () => {
+      await utils.auth.getLoggedInUserInfo.invalidate();
+    },
+  });
+
+  return {
+    logoutAsync,
+    error,
+    isError,
+    isIdle,
+    isPending,
+    isSuccess,
+    status,
+  };
+}
+
 export const useUser = () => {
   const {
     data: user,

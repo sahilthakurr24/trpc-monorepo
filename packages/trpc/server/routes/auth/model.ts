@@ -23,8 +23,14 @@ export const signinUserWithEmailAndPasswordOutput = z.object({
 export const getLoggedInUserInfoInput = z.undefined();
 
 export const getLoggedInUserInfoOutput = z.object({
-  id : z.string().describe('id of the user created'),
-  email : z.email().describe('email of the user'),
-  fullName : z.string().describe('name of the user'),
-  profileImageUrl : z.string().describe('image url of the user').optional().nullable()
-})
+  id: z.string().describe("id of the user created"),
+  email: z.email().describe("email of the user"),
+  fullName: z.string().describe("name of the user"),
+  profileImageUrl: z.string().describe("image url of the user").optional().nullable(),
+});
+
+export const logoutInput = z.undefined();
+
+export const logoutOutput = z.object({
+  success: z.boolean().describe("Whether the logout operation completed"),
+});

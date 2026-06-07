@@ -62,11 +62,7 @@ export function SignupForm({
           <Input id="password" type="password" required {...register("password")} />
           <FieldDescription>Must be at least 8 characters long.</FieldDescription>
         </Field>
-        <Field>
-          <FieldLabel htmlFor="confirm-password">Confirm Password</FieldLabel>
-          <Input id="confirm-password" type="password" required {...register("confirmPassword")} />
-          <FieldDescription>Please confirm your password.</FieldDescription>
-        </Field>
+
         <Field>
           <Button type="submit">Create Account</Button>
         </Field>

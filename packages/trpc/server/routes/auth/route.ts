@@ -1,6 +1,6 @@
 import { z, zodUndefinedModel } from "../../schema";
 import { TRPCError } from "@trpc/server";
-import { userService } from "../../services";
+import { logoutService, userService } from "../../services";
 import { authenticationProcedure, publicProcedure, router } from "../../trpc";
 import { generatePath } from "../../utils/path-generator";
 import { url } from "@repo/services/clients/google-oauth";
@@ -11,8 +11,14 @@ import {
   signinUserWithEmailAndPasswordInput,
   getLoggedInUserInfoInput,
   getLoggedInUserInfoOutput,
+  logoutInput,
+  logoutOutput,
 } from "./model";
-import { getAuthenticationCookie, setAuthenticationCookie } from "../../utils/cookie";
+import {
+  clearAuthenticationCookie,
+  getAuthenticationCookie,
+  setAuthenticationCookie,
+} from "../../utils/cookie";
 
 const TAGS = ["Authentication"];
 const getPath = generatePath("/authentication");
@@ -114,5 +120,20 @@ export const authRouter = router({
         fullName,
         profileImageUrl,
       };
+    }),
+  logout: authenticationProcedure
+    .meta({
+      openapi: {
+        method: "POST",
+        path: getPath("/logout"),
+        tags: TAGS,
+      },
+    })
+    .input(logoutInput)
+    .output(logoutOutput)
+    .mutation(async ({ ctx }) => {
+      const result = await logoutService.logout();
+      clearAuthenticationCookie(ctx);
+      return result;
     }),
 });
