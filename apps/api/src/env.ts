@@ -9,6 +9,7 @@ const envSchema = z.object({
   NODE_ENV: z.enum(["development", "prod"]).default("development"),
   BASE_URL: z.string().default("http://localhost:8000"),
   OPENAI_API_KEY: z.string().describe("api keys for the model"),
+  GOOGLE_OAUTH_CLIENT_ID: z.string().describe("google oauth client id"),
 });
 
 function createEnv(env: NodeJS.ProcessEnv) {

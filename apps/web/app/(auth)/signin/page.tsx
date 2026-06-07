@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { SigninForm } from "~/components/signin-form";
-import { useSignIn } from "~/hooks/api/auth";
+import { useGoogleLogin, useSignIn } from "~/hooks/api/auth";
 
 type FormValues = {
   email: string;
@@ -16,6 +16,7 @@ type FormValues = {
 export default function SigninPage() {
   const router = useRouter();
   const { signinUserWithEmailAndPasswordAsync, error, isPending } = useSignIn();
+  const { refetchGoogleLogin, isFetching: isGoogleRedirecting } = useGoogleLogin();
   const { handleSubmit, register } = useForm<FormValues>();
 
   const onSubmit = async (values: FormValues) => {
@@ -29,6 +30,22 @@ export default function SigninPage() {
       router.push("/dashboard");
     } catch {
       toast.error("Unable to sign in");
+    }
+  };
+
+  const onGoogleClick = async () => {
+    try {
+      const result = await refetchGoogleLogin();
+      const authUrl = result.data?.url;
+
+      if (!authUrl) {
+        toast.error("Unable to start Google sign in");
+        return;
+      }
+
+      window.location.href = authUrl;
+    } catch {
+      toast.error("Unable to start Google sign in");
     }
   };
 
@@ -48,7 +65,9 @@ export default function SigninPage() {
           <div className="w-full max-w-xs">
             <SigninForm
               errorMessage={error?.message}
+              isGoogleSubmitting={isGoogleRedirecting}
               isSubmitting={isPending}
+              onGoogleClick={onGoogleClick}
               onSubmit={handleSubmit(onSubmit)}
               register={register}
             />

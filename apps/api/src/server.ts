@@ -9,6 +9,14 @@ import { env } from "./env";
 import { generateFormWithAi, inngest, serve } from "@repo/inngest";
 
 import { serverRouter, createContext } from "@repo/trpc/server";
+import { googleOAuth2Client } from "@repo/services/clients/google-oauth";
+import { googleLoginService } from "@repo/trpc/server/services";
+import {
+  clearCookiedFactory,
+  createCookieFactory,
+  getCookieFactory,
+  setAuthenticationCookie,
+} from "@repo/trpc/server/utils/cookie";
 
 export const app = express();
 const openApiDocument = generateOpenApiDocument(serverRouter, {
@@ -42,6 +50,56 @@ app.get("/", (req, res) => {
 
 app.get("/health", (req, res) => {
   return res.json({ message: "Streamyst server is healthy", healthy: true });
+});
+
+app.get("/auth/google/callback", async (req, res) => {
+  try {
+    const code = req.query.code as string | undefined;
+
+    if (!code) {
+      return res.status(400).json({ error: "Google authorization code is missing" });
+    }
+
+    const { tokens } = await googleOAuth2Client.getToken(code);
+    if (!tokens.id_token) {
+      return res.status(401).json({ error: "Google id token is missing" });
+    }
+
+    const ticket = await googleOAuth2Client.verifyIdToken({
+      idToken: tokens.id_token,
+      audience: env.GOOGLE_OAUTH_CLIENT_ID,
+    });
+    const payload = ticket.getPayload();
+    if (!payload) {
+      return res.status(500).json({ error: "Invalid token" });
+    }
+    const { email, name, picture } = payload;
+    if (!email || !name) {
+      return res.status(401).json({ error: "Something is missing in field" });
+    }
+
+    const user = await googleLoginService.findUserByEmail({ email });
+    const authResult =
+      user.length > 0
+        ? {
+            id: user[0]!.id,
+            ...(await googleLoginService.createTokenForUser({ id: user[0]!.id })),
+          }
+        : await googleLoginService.createUser({ email, name, picture });
+
+    const ctx = {
+      createCookie: createCookieFactory(res),
+      getCookie: getCookieFactory(req),
+      clearCookie: clearCookiedFactory(res),
+      user: undefined,
+    };
+    setAuthenticationCookie(ctx, authResult.token);
+
+    return res.redirect("http://localhost:3000/dashboard");
+  } catch (error) {
+    logger.error("Google OAuth callback failed", { error });
+    return res.redirect("http://localhost:3000/signin?error=google_oauth_failed");
+  }
 });
 
 logger.debug(`openapi.json: ${env.BASE_URL}/openapi.json`);

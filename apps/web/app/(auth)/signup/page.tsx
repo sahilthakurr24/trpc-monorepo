@@ -4,8 +4,9 @@ import { GalleryVerticalEnd } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
+import { toast } from "sonner";
 import { SignupForm } from "~/components/signup-form";
-import { useSignUp } from "~/hooks/api/auth";
+import { useGoogleLogin, useSignUp } from "~/hooks/api/auth";
 
 type FormValues = {
   name: string;
@@ -16,6 +17,7 @@ type FormValues = {
 
 export default function SignupPage() {
   const { createUserWithEmailAndPasswordAsync } = useSignUp();
+  const { refetchGoogleLogin, isFetching: isGoogleRedirecting } = useGoogleLogin();
   const { handleSubmit, register } = useForm<FormValues>();
   const router = useRouter();
 
@@ -28,6 +30,22 @@ export default function SignupPage() {
 
     console.log(`User is created with ID : ${id}`);
     router.replace("/dashboard");
+  };
+
+  const onGoogleClick = async () => {
+    try {
+      const result = await refetchGoogleLogin();
+      const authUrl = result.data?.url;
+
+      if (!authUrl) {
+        toast.error("Unable to start Google sign up");
+        return;
+      }
+
+      window.location.href = authUrl;
+    } catch {
+      toast.error("Unable to start Google sign up");
+    }
   };
 
   return (
@@ -44,7 +62,12 @@ export default function SignupPage() {
 
         <div className="flex flex-1 items-center justify-center">
           <div className="w-full max-w-xs">
-            <SignupForm onSubmit={handleSubmit(onSubmit)} register={register} />
+            <SignupForm
+              isGoogleSubmitting={isGoogleRedirecting}
+              onGoogleClick={onGoogleClick}
+              onSubmit={handleSubmit(onSubmit)}
+              register={register}
+            />
           </div>
         </div>
       </div>

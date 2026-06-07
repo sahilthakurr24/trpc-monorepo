@@ -1,9 +1,9 @@
 import { z, zodUndefinedModel } from "../../schema";
 import { TRPCError } from "@trpc/server";
 import { userService } from "../../services";
-import { getAuthenticationMethodOutputSchema } from "@repo/services/user/model";
 import { authenticationProcedure, publicProcedure, router } from "../../trpc";
 import { generatePath } from "../../utils/path-generator";
+import { url } from "@repo/services/clients/google-oauth";
 import {
   createUserWithEmailAndPasswordInput,
   createUserWithEmailAndPasswordOutput,
@@ -19,6 +19,11 @@ const getPath = generatePath("/authentication");
 const SIGNIN_FAILURE_MESSAGES = new Set(["Invalid email or password", "Invalid login method"]);
 
 export const authRouter = router({
+  googleLogin: publicProcedure.query(() => {
+    return {
+      url,
+    };
+  }),
   createUserWithEmailAndPassword: publicProcedure
     .meta({
       openapi: {

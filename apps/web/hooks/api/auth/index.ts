@@ -57,6 +57,20 @@ export function useSignIn() {
   };
 }
 
+export function useGoogleLogin() {
+  const { data, error, isFetching, refetch, status } = trpc.auth.googleLogin.useQuery(undefined, {
+    enabled: false,
+  });
+
+  return {
+    googleLogin: data,
+    error,
+    isFetching,
+    refetchGoogleLogin: refetch,
+    status,
+  };
+}
+
 export const useUser = () => {
   const {
     data: user,
