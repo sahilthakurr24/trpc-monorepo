@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 
 const AUTH_COOKIE_NAME = "authentication-token";
+const ONE_MINUTE = 60 * 1000;
+const ONE_HOUR = 60 * ONE_MINUTE;
+const ONE_DAY = 24 * ONE_HOUR;
+const ONE_MONTH = 30 * ONE_DAY;
+const ONE_YEAR = 12 * ONE_MONTH;
 
 export async function GET(request: NextRequest) {
   const token = request.nextUrl.searchParams.get("token");
@@ -11,11 +16,11 @@ export async function GET(request: NextRequest) {
 
   const response = NextResponse.redirect(new URL("/dashboard", request.url));
   response.cookies.set(AUTH_COOKIE_NAME, token, {
-    httpOnly: true,
-    maxAge: 60 * 60 * 24 * 365,
     path: "/",
-    sameSite: "lax",
+    httpOnly: true,
     secure: false,
+    sameSite: "lax",
+    maxAge: ONE_YEAR,
   });
 
   return response;
