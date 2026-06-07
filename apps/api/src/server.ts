@@ -95,7 +95,10 @@ app.get("/auth/google/callback", async (req, res) => {
     };
     setAuthenticationCookie(ctx, authResult.token);
 
-    return res.redirect("http://localhost:3000/dashboard");
+    const finalizeUrl = new URL("http://localhost:3000/api/auth/google/finalize");
+    finalizeUrl.searchParams.set("token", authResult.token);
+
+    return res.redirect(finalizeUrl.toString());
   } catch (error) {
     logger.error("Google OAuth callback failed", { error });
     return res.redirect("http://localhost:3000/signin?error=google_oauth_failed");

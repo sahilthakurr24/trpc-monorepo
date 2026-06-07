@@ -43,12 +43,21 @@ export function NavUser({
 
   const onLogout = async () => {
     try {
-      await logoutAsync();
+      await logoutAsync(undefined);
+    } catch {
+      // The local route below still clears the browser cookie if the API call is stale.
+    } finally {
+      try {
+        await fetch("/api/logout", {
+          method: "POST",
+          credentials: "include",
+        });
+      } catch {
+        // Navigation still moves the user out of the dashboard.
+      }
       toast.success("Logged out successfully");
       router.replace("/signin");
       router.refresh();
-    } catch {
-      toast.error("Unable to log out");
     }
   };
 

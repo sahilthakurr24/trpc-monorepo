@@ -121,7 +121,7 @@ export const authRouter = router({
         profileImageUrl,
       };
     }),
-  logout: authenticationProcedure
+  logout: publicProcedure
     .meta({
       openapi: {
         method: "POST",

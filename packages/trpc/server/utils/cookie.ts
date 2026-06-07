@@ -11,7 +11,7 @@ const defaultCookieOptions: CookieOptions = {
   path: "/",
   httpOnly: true,
   secure: false,
-  sameSite: "strict",
+  sameSite: "lax",
   maxAge: ONE_YEAR,
 };
 
@@ -33,7 +33,11 @@ export function getCookieFactory(req: Request) {
 
 export function clearCookiedFactory(res: Response) {
   return function clearCookie(name: string) {
-    res.clearCookie(name);
+    res.clearCookie(name, {
+      path: defaultCookieOptions.path,
+      sameSite: defaultCookieOptions.sameSite,
+      secure: defaultCookieOptions.secure,
+    });
   };
 }
 

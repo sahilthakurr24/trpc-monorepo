@@ -83,7 +83,7 @@ export function useLogout() {
     status,
   } = trpc.auth.logout.useMutation({
     onSuccess: async () => {
-      await utils.auth.getLoggedInUserInfo.invalidate();
+      await utils.auth.getLoggedInUserInfo.reset();
     },
   });
 
