@@ -1,12 +1,6 @@
 "use client";
 
-import {
-  IconCreditCard,
-  IconDotsVertical,
-  IconLogout,
-  IconNotification,
-  IconUserCircle,
-} from "@tabler/icons-react";
+import { IconDotsVertical, IconLogout } from "@tabler/icons-react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
@@ -14,7 +8,6 @@ import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
-  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
@@ -30,16 +23,19 @@ import { useLogout } from "~/hooks/api/auth";
 
 export function NavUser({
   user,
+  isLoading = false,
 }: {
   user: {
     name: string;
     email: string;
     avatar: string;
   };
+  isLoading?: boolean;
 }) {
   const router = useRouter();
   const { isMobile } = useSidebar();
   const { logoutAsync, isPending: isLoggingOut } = useLogout();
+  const fallback = getUserFallback(user.name, user.email);
 
   const onLogout = async () => {
     try {
@@ -69,14 +65,17 @@ export function NavUser({
             <SidebarMenuButton
               size="lg"
               className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
+              disabled={isLoading}
             >
               <Avatar className="h-8 w-8 rounded-lg grayscale">
                 <AvatarImage src={user.avatar} alt={user.name} />
-                <AvatarFallback className="rounded-lg">CN</AvatarFallback>
+                <AvatarFallback className="rounded-lg">{fallback}</AvatarFallback>
               </Avatar>
               <div className="grid flex-1 text-left text-sm leading-tight">
                 <span className="truncate font-medium">{user.name}</span>
-                <span className="truncate text-xs text-muted-foreground">{user.email}</span>
+                {user.email ? (
+                  <span className="truncate text-xs text-muted-foreground">{user.email}</span>
+                ) : null}
               </div>
               <IconDotsVertical className="ml-auto size-4" />
             </SidebarMenuButton>
@@ -91,29 +90,16 @@ export function NavUser({
               <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
                 <Avatar className="h-8 w-8 rounded-lg">
                   <AvatarImage src={user.avatar} alt={user.name} />
-                  <AvatarFallback className="rounded-lg">CN</AvatarFallback>
+                  <AvatarFallback className="rounded-lg">{fallback}</AvatarFallback>
                 </Avatar>
                 <div className="grid flex-1 text-left text-sm leading-tight">
                   <span className="truncate font-medium">{user.name}</span>
-                  <span className="truncate text-xs text-muted-foreground">{user.email}</span>
+                  {user.email ? (
+                    <span className="truncate text-xs text-muted-foreground">{user.email}</span>
+                  ) : null}
                 </div>
               </div>
             </DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuGroup>
-              <DropdownMenuItem>
-                <IconUserCircle />
-                Account
-              </DropdownMenuItem>
-              <DropdownMenuItem>
-                <IconCreditCard />
-                Billing
-              </DropdownMenuItem>
-              <DropdownMenuItem>
-                <IconNotification />
-                Notifications
-              </DropdownMenuItem>
-            </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <DropdownMenuItem disabled={isLoggingOut} onClick={onLogout}>
               <IconLogout />
@@ -124,4 +110,18 @@ export function NavUser({
       </SidebarMenuItem>
     </SidebarMenu>
   );
+}
+
+function getUserFallback(name: string, email: string) {
+  const source = name.trim() || email.trim();
+  if (!source) return "U";
+
+  const initials = source
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((part) => part[0])
+    .join("")
+    .toUpperCase();
+
+  return initials || "U";
 }

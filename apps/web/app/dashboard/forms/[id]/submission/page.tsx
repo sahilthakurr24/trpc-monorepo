@@ -99,7 +99,7 @@ export default function FormSubmissionsPage() {
                 </p>
               </div>
             ) : (
-              <Table>
+              <Table containerClassName="[scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                 <TableHeader>
                   <TableRow>
                     <TableHead className="min-w-44 px-6">Submitted</TableHead>

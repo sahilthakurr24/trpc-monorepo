@@ -34,7 +34,7 @@ export default function Home() {
 
   return (
     <main className="min-h-screen min-w-screen flex justify-center items-center">
-      <div>{JSON.stringify(user)}</div>
+      <div>{'Todo -- '}</div>
     </main>
   );
 }
