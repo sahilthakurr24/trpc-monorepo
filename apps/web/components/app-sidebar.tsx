@@ -34,7 +34,6 @@ const data = {
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { user, isLoading } = useUser();
-  console.log(user?.fullName)
   const displayName = getUserDisplayName(user?.fullName, user?.email);
   const sidebarUser = {
     name: displayName || (isLoading ? "Loading..." : "Account"),
